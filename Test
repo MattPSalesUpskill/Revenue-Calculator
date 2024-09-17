@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Team Calculator</title>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #root {
+            padding: 20px;
+        }
+        .calculator {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .radio-group {
+            margin-bottom: 15px;
+        }
+        .radio-group label {
+            margin-right: 10px;
+        }
+        .output-group {
+            margin-bottom: 10px;
+        }
+        .output-group strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const SalesTeamCalculator = () => {
+            const [inputs, setInputs] = useState({
+                target: 1000000,
+                timeframe: 12,
+                averageDealValue: 10000,
+                aeTeamSize: 5,
+                sdrTeamSize: 10,
+                bookingRateOffActivity: 0.2,
+                bookingShowRate: 0.8,
+                bookingToSalesAccepted: 0.6,
+                salesAcceptedToCW: 0.4,
+                sdrPipelineContribution: 50,
+                aePipelineContribution: 50,
+            });
+
+            const [outputs, setOutputs] = useState({});
+            const [timePeriod, setTimePeriod] = useState('yearly');
+
+            const handleInputChange = (name, value) => {
+                setInputs(prev => ({ ...prev, [name]: Number(value) }));
+            };
+
+            useEffect(() => {
+                const calculateOutputs = () => {
+                    const {
+                        target,
+                        timeframe,
+                        averageDealValue,
+                        bookingRateOffActivity,
+                        bookingShowRate,
+                        bookingToSalesAccepted,
+                        salesAcceptedToCW,
+                        sdrPipelineContribution,
+                        aePipelineContribution,
+                    } = inputs;
+
+                    const calculateTimeBasedValue = (value) => {
+                        switch (timePeriod) {
+                            case 'monthly':
+                                return value / timeframe;
+                            case 'quarterly':
+                                return (value / timeframe) * 3;
+                            case 'yearly':
+                            default:
+                                return value;
+                        }
+                    };
+
+                    const numberOfCWDeals = target / averageDealValue;
+                    const pipeline = target / salesAcceptedToCW;
+                    const salesAcceptedDeals = numberOfCWDeals / salesAcceptedToCW;
+                    const bookingsAttended = salesAcceptedDeals / bookingToSalesAccepted;
+                    const bookingsCreated = bookingsAttended / bookingShowRate;
+                    const totalActivitiesRequired = bookingsCreated / bookingRateOffActivity;
+
+                    const aeContributionRatio = aePipelineContribution / 100;
+                    const sdrContributionRatio = sdrPipelineContribution / 100;
+
+                    const outputs = {
+                        revenueTarget: calculateTimeBasedValue(target),
+                        numberOfCWDeals: calculateTimeBasedValue(numberOfCWDeals),
+                        pipeline: calculateTimeBasedValue(pipeline),
+                        salesAcceptedDeals: calculateTimeBasedValue(salesAcceptedDeals),
+                        bookingsAttended: calculateTimeBasedValue(bookingsAttended),
+                        bookingsCreated: calculateTimeBasedValue(bookingsCreated),
+                        totalActivitiesRequired: calculateTimeBasedValue(totalActivitiesRequired),
+                        deliveredRevenueAE: calculateTimeBasedValue(target * aeContributionRatio),
+                        deliveredCWDealsAE: calculateTimeBasedValue(numberOfCWDeals * aeContributionRatio),
+                        managedPipelineAE: calculateTimeBasedValue(pipeline * aeContributionRatio),
+                        salesAcceptedDealsAE: calculateTimeBasedValue(salesAcceptedDeals * aeContributionRatio),
+                        attendedBookingsSatAE: calculateTimeBasedValue(bookingsAttended * aeContributionRatio),
+                        bookingsCreatedAE: calculateTimeBasedValue(bookingsCreated * aeContributionRatio),
+                        totalActivitiesRequiredAE: calculateTimeBasedValue(totalActivitiesRequired * aeContributionRatio),
+                        revenueContributionSDR: calculateTimeBasedValue(target * sdrContributionRatio),
+                        cwDealsContributionSDR: calculateTimeBasedValue(numberOfCWDeals * sdrContributionRatio),
+                        pipelineContributionSDR: calculateTimeBasedValue(pipeline * sdrContributionRatio),
+                        salesAcceptedDealsSDR: calculateTimeBasedValue(salesAcceptedDeals * sdrContributionRatio),
+                        bookingsAttendedSDR: calculateTimeBasedValue(bookingsAttended * sdrContributionRatio),
+                        bookingsCreatedSDR: calculateTimeBasedValue(bookingsCreated * sdrContributionRatio),
+                        totalActivitiesRequiredSDR: calculateTimeBasedValue(totalActivitiesRequired * sdrContributionRatio),
+                    };
+
+                    setOutputs(outputs);
+                };
+
+                calculateOutputs();
+            }, [inputs, timePeriod]);
+
+            const renderInput = (name, label) => (
+                <div className="input-group">
+                    <label>{label}</label>
+                    <input
+                        type="number"
+                        value={inputs[name]}
+                        onChange={(e) => handleInputChange(name, e.target.value)}
+                    />
+                </div>
+            );
+
+            const renderOutput = (label, value) => (
+                <div className="output-group">
+                    <strong>{label}:</strong> {typeof value === 'number' ? value.toLocaleString(undefined, {maximumFractionDigits: 2}) : value}
+                </div>
+            );
+
+            return (
+                <div className="calculator">
+                    <h2>Sales Team Calculator</h2>
+                    <div>
+                        <h3>Inputs</h3>
+                        {renderInput('target', 'Target ($)')}
+                        {renderInput('timeframe', 'Timeframe (months)')}
+                        {renderInput('averageDealValue', 'Average Deal Value ($)')}
+                        {renderInput('aeTeamSize', 'AE Team Size')}
+                        {renderInput('sdrTeamSize', 'SDR Team Size')}
+                        {renderInput('bookingRateOffActivity', 'Booking Rate Off Activity')}
+                        {renderInput('bookingShowRate', 'Booking Show Rate')}
+                        {renderInput('bookingToSalesAccepted', 'Booking to Sales Accepted')}
+                        {renderInput('salesAcceptedToCW', 'Sales Accepted to CW')}
+                        {renderInput('sdrPipelineContribution', 'SDR % of Pipeline Contribution')}
+                        {renderInput('aePipelineContribution', 'AE % of Pipeline Contribution')}
+                    </div>
+                    <div>
+                        <h3>Outputs</h3>
+                        <div className="radio-group">
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="monthly"
+                                    checked={timePeriod === 'monthly'}
+                                    onChange={() => setTimePeriod('monthly')}
+                                /> Monthly
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="quarterly"
+                                    checked={timePeriod === 'quarterly'}
+                                    onChange={() => setTimePeriod('quarterly')}
+                                /> Quarterly
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="yearly"
+                                    checked={timePeriod === 'yearly'}
+                                    onChange={() => setTimePeriod('yearly')}
+                                /> Yearly
+                            </label>
+                        </div>
+                        {renderOutput('Revenue Target', outputs.revenueTarget)}
+                        {renderOutput('Number of CW Deals', outputs.numberOfCWDeals)}
+                        {renderOutput('Pipeline', outputs.pipeline)}
+                        {renderOutput('Number of Sales Accepted Deals', outputs.salesAcceptedDeals)}
+                        {renderOutput('Bookings Attended', outputs.bookingsAttended)}
+                        {renderOutput('Bookings Created', outputs.bookingsCreated)}
+                        {renderOutput('Total Activities Required', outputs.totalActivitiesRequired)}
+                        <h4>AE Metrics</h4>
+                        {renderOutput('Delivered Revenue', outputs.deliveredRevenueAE)}
+                        {renderOutput('Delivered CW Deals', outputs.deliveredCWDealsAE)}
+                        {renderOutput('Managed Pipeline', outputs.managedPipelineAE)}
+                        {renderOutput('Sales Accepted Deals', outputs.salesAcceptedDealsAE)}
+                        {renderOutput('Attended Bookings', outputs.attendedBookingsSatAE)}
+                        {renderOutput('Bookings Created', outputs.bookingsCreatedAE)}
+                        {renderOutput('Total Activities Required', outputs.totalActivitiesRequiredAE)}
+                        <h4>SDR Metrics</h4>
+                        {renderOutput('Revenue Contribution', outputs.revenueContributionSDR)}
+                        {renderOutput('CW Deals Contribution', outputs.cwDealsContributionSDR)}
+                        {renderOutput('Pipeline Contribution', outputs.pipelineContributionSDR)}
+                        {renderOutput('Sales Accepted Deals', outputs.salesAcceptedDealsSDR)}
+                        {renderOutput('Bookings Attended', outputs.bookingsAttendedSDR)}
+                        {renderOutput('Bookings Created', outputs.bookingsCreatedSDR)}
+                        {renderOutput('Total Activities Required', outputs.totalActivitiesRequiredSDR)}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<SalesTeamCalculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
